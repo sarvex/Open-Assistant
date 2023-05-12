@@ -11,11 +11,10 @@ from sampling_report import SamplingReport
 
 
 def filter_text(s: str) -> str:
-    m = re.search(
+    if m := re.search(
         r"\</?prefix\>|\<human\>|\<\|endoftext\|\>|\<\|prompter\|\>|\<\|assistant\|\>|\<\|system\|\>|<|prefix_(begin|end)\|\>",
         s,
-    )
-    if m:
+    ):
         s = s[: m.start()]
     return s
 

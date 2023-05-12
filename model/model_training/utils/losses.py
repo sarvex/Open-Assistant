@@ -21,9 +21,7 @@ class CrossEntropyLoss(nn.CrossEntropyLoss):
 
         loss = super().forward(input, target)
 
-        if self._reduction == "none":
-            return loss
-        return loss.sum() / (size + 1e-8)
+        return loss if self._reduction == "none" else loss.sum() / (size + 1e-8)
 
 
 class PolyLoss(nn.Module):
@@ -78,9 +76,7 @@ class RMLoss(nn.Module):
             losses.append(_loss)
         loss = torch.stack(losses)
 
-        if self.reduction == "none":
-            return loss
-        return loss.mean()
+        return loss if self.reduction == "none" else loss.mean()
 
 
 class RMCLSLoss(nn.CrossEntropyLoss):
@@ -107,6 +103,4 @@ class RMCLSLoss(nn.CrossEntropyLoss):
         labels = torch.zeros(logit_pairs.shape[0], dtype=torch.long, device=device)
         loss = super().forward(logit_pairs, labels)
 
-        if self._reduction == "none":
-            return loss
-        return loss.mean()
+        return loss if self._reduction == "none" else loss.mean()

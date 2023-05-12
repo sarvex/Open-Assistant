@@ -97,5 +97,5 @@ class PIIDetector:
         for match in match_list:
             print("\nLinenumber: " + str(match[0]))
             # To query the actual name efficiently, use  inverted dictionary.
-            print("Type: " + regexes_patterns_inverse.get(match[1][0]))
-            print("Start Position: " + str(match[1][1]))
+            print(f"Type: {regexes_patterns_inverse.get(match[1][0])}")
+            print(f"Start Position: {str(match[1][1])}")

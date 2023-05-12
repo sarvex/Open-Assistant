@@ -24,9 +24,12 @@ class RedisQueue:
         self.max_size = max_size or 0
 
     async def enqueue(self, value: str, enforce_max_size: bool = True) -> int | None:
-        if enforce_max_size and self.max_size > 0:
-            if await self.get_length() >= self.max_size:
-                raise QueueFullException()
+        if (
+            enforce_max_size
+            and self.max_size > 0
+            and await self.get_length() >= self.max_size
+        ):
+            raise QueueFullException()
         await self.redis_client.rpush(self.queue_id, value)
         if self.expire is not None:
             await self.set_expire(self.expire)
@@ -66,9 +69,7 @@ class RedisQueue:
 
 async def get_pos_value(redis_client: redis.Redis, message_id: str) -> int:
     val = await redis_client.get(f"pos:{message_id}")
-    if val is None:
-        return 0
-    return int(val)
+    return 0 if val is None else int(val)
 
 
 def message_queue(redis_client: redis.Redis, message_id: str) -> RedisQueue:
@@ -76,9 +77,12 @@ def message_queue(redis_client: redis.Redis, message_id: str) -> RedisQueue:
 
 
 def work_queue(redis_client: redis.Redis, worker_compat_hash: str) -> RedisQueue:
-    if settings.allowed_worker_compat_hashes != "*":
-        if worker_compat_hash not in settings.allowed_worker_compat_hashes_list:
-            raise ValueError(f"Worker compat hash {worker_compat_hash} not allowed")
+    if (
+        settings.allowed_worker_compat_hashes != "*"
+        and worker_compat_hash
+        not in settings.allowed_worker_compat_hashes_list
+    ):
+        raise ValueError(f"Worker compat hash {worker_compat_hash} not allowed")
     return RedisQueue(
         redis_client,
         f"work:{worker_compat_hash}",

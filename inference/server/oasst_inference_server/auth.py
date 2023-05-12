@@ -106,8 +106,7 @@ def derive_key() -> bytes:
         salt=settings.auth_salt,
         info=settings.auth_info,
     )
-    key = hkdf.derive(settings.auth_secret)
-    return key
+    return hkdf.derive(settings.auth_secret)
 
 
 def build_payload(user_id: str, token_type: str, expire_minutes: int) -> bytes:

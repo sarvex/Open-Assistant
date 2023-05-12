@@ -51,8 +51,7 @@ class UserChatRepository(pydantic.BaseModel):
                 sqlalchemy.orm.selectinload(models.DbChat.messages).selectinload(models.DbMessage.reports),
             )
 
-        chat = (await self.session.exec(query)).one()
-        return chat
+        return (await self.session.exec(query)).one()
 
     async def get_message_by_id(self, chat_id: str, message_id: str) -> models.DbMessage:
         query = (
@@ -69,8 +68,7 @@ class UserChatRepository(pydantic.BaseModel):
                 models.DbChat.user_id == self.user_id,
             )
         )
-        message = (await self.session.exec(query)).one()
-        return message
+        return (await self.session.exec(query)).one()
 
     async def create_chat(self) -> models.DbChat:
         # Try to find the user first
@@ -103,9 +101,11 @@ class UserChatRepository(pydantic.BaseModel):
     async def add_prompter_message(self, chat_id: str, parent_id: str | None, content: str) -> models.DbMessage:
         logger.info(f"Adding prompter message {len(content)=} to chat {chat_id}")
 
-        if settings.message_max_length is not None:
-            if len(content) > settings.message_max_length:
-                raise fastapi.HTTPException(status_code=413, detail="Message content exceeds max length")
+        if (
+            settings.message_max_length is not None
+            and len(content) > settings.message_max_length
+        ):
+            raise fastapi.HTTPException(status_code=413, detail="Message content exceeds max length")
 
         chat: models.DbChat = (
             await self.session.exec(
@@ -117,9 +117,11 @@ class UserChatRepository(pydantic.BaseModel):
                 )
             )
         ).one()
-        if settings.chat_max_messages is not None:
-            if len(chat.messages) >= settings.chat_max_messages:
-                raise fastapi.HTTPException(status_code=413, detail="Maximum number of messages reached for this chat")
+        if (
+            settings.chat_max_messages is not None
+            and len(chat.messages) >= settings.chat_max_messages
+        ):
+            raise fastapi.HTTPException(status_code=413, detail="Maximum number of messages reached for this chat")
         if parent_id is None:
             if len(chat.messages) > 0:
                 raise fastapi.HTTPException(status_code=400, detail="Trying to add first message to non-empty chat")

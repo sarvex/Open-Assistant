@@ -122,7 +122,7 @@ or run with:
             "--use_flash_attention=false  --no-residual_dropout"
         )
 
-    if isinstance(model, GPTNeoXRewardModel) or isinstance(model, GPTNeoXForCausalLM):
+    if isinstance(model, (GPTNeoXRewardModel, GPTNeoXForCausalLM)):
         model = model.gpt_neox
 
     if isinstance(model, LlamaForCausalLM):

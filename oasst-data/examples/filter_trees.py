@@ -25,8 +25,7 @@ def parse_args():
     )
     parser.add_argument("--exclude-nulls", action="store_true", default=False)
     parser.add_argument("--allow-synth", action="store_true", default=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -42,9 +41,10 @@ def main():
     for message_tree in read_message_trees(args.input_file_name):
         msgs = []
         visit_messages_depth_first(message_tree.prompt, msgs.append)
-        if message_tree.tree_state in states:
-            if allow_synth or not any(x.synthetic for x in msgs):
-                trees.append(message_tree)
+        if message_tree.tree_state in states and (
+            allow_synth or not any(x.synthetic for x in msgs)
+        ):
+            trees.append(message_tree)
 
     print(f"Found {len(trees)} matching trees.")
 

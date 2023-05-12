@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     RS = args.get("rs")
     selected_list, rejected_list = [], []
-    for i, data in enumerate(dataloader):
+    for data in dataloader:
         index = data.pop("sampling").detach().cpu().item()
         data = {k: v.to(device) for k, v in data.items()}
         pred = (

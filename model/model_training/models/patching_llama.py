@@ -43,11 +43,15 @@ def llama_forward_with_flash_attn(
 
     past_key_value = (key_states, value_states) if use_cache else None
 
-    if attention_mask is not None:
-        if attention_mask.size() != (bsz, 1, q_len, kv_seq_len):
-            raise ValueError(
-                f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
-            )
+    if attention_mask is not None and attention_mask.size() != (
+        bsz,
+        1,
+        q_len,
+        kv_seq_len,
+    ):
+        raise ValueError(
+            f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
+        )
 
     if (
         query_states.shape == key_states.shape

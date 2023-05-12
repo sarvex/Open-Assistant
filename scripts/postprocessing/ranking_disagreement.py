@@ -81,8 +81,8 @@ def get_df():
     print(*[f"{k} : {v}" for k, v in rankings.items()], sep="\n")
     users = list(users)
     messages = list(messages)
-    consensus = dict()
-    total_correlation = list()
+    consensus = {}
+    total_correlation = []
     for k, v in rankings.items():
         # print("v",[len(i) for i in v])
         common_set = set.intersection(*map(set, v))

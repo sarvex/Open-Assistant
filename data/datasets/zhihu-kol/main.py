@@ -40,10 +40,9 @@ def get_uid_by_url_token(url_token: str) -> str:
         "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
     }
 
-    url = "https://api.zhihu.com/people/" + url_token
+    url = f"https://api.zhihu.com/people/{url_token}"
     response = requests.get(url, headers=headers)
-    uid = response.json()["id"]
-    return uid
+    return response.json()["id"]
 
 
 @retry(tries=3)
@@ -151,8 +150,7 @@ def get_answer_content(qid: str, aid) -> str:
     response = requests.get(url, headers=headers)
 
     soup = BeautifulSoup(response.text, "html.parser")
-    content = " ".join([p.text.strip() for p in soup.find_all("p")])
-    return content
+    return " ".join([p.text.strip() for p in soup.find_all("p")])
 
 
 def reformat_csv_to_openassitant(df: pd.DataFrame) -> pd.DataFrame:
@@ -239,6 +237,6 @@ if __name__ == "__main__":
     # url_token = 'la-ge-lang-ri-96-69'
     url_token = "nicole-97-93"
     # 回答数据保存路径
-    csv_path = url_token + ".csv"
+    csv_path = f"{url_token}.csv"
     # 调用函数获取数据
     save_answers_to_csv(url_token, csv_path)

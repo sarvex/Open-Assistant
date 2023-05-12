@@ -12,7 +12,4 @@ def _filter_by_words(text: str, filter_words: list[str] | None = None) -> None |
         None | str: filtered text
     """
     filter_words = filter_words or FILTER_BY_WORDS
-    for word in filter_words:
-        if word in text.lower():
-            return None
-    return text
+    return next((None for word in filter_words if word in text.lower()), text)

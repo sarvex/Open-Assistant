@@ -9,8 +9,7 @@ def load_jsonl(filepaths):
     data = []
     for filepath in filepaths:
         with open(filepath, "r") as f:
-            for line in f:
-                data.append(json.loads(line))
+            data.extend(json.loads(line) for line in f)
     return data
 
 
@@ -37,16 +36,16 @@ def store_qa_data_separate(trees, data):
 
 
 def group_qa_helper(node, depth, msg_pairs):
-    if "text" in node:
-        if node["role"] == "prompter":
-            if "replies" in node:
-                for reply in node["replies"]:
-                    qa_pair = {"instruct": str(node["text"]), "answer": str(reply["text"])}
-                    msg_pairs.append(qa_pair)
-        depth += 1
-        if "replies" in node:
-            for reply in node["replies"]:
-                group_qa_helper(reply, depth, msg_pairs)
+    if "text" not in node:
+        return
+    if node["role"] == "prompter" and "replies" in node:
+        for reply in node["replies"]:
+            qa_pair = {"instruct": str(node["text"]), "answer": str(reply["text"])}
+            msg_pairs.append(qa_pair)
+    depth += 1
+    if "replies" in node:
+        for reply in node["replies"]:
+            group_qa_helper(reply, depth, msg_pairs)
 
 
 def store_qa_data_paired(trees, data: List):
@@ -65,11 +64,11 @@ def load_data(filepaths: List[str], paired=False):
         data = []
         data, message_list = store_qa_data_paired(trees, data)
         sents = [f"{qa['instruct']} {qa['answer']}" for qa in data]
-    elif not paired:
+    else:
         data = defaultdict(list)
         data, message_list = store_qa_data_separate(trees, data)
         sents = data["user_messages"] + data["assistant_messages"]
 
-    data = [(i, sent) for i, sent in enumerate(sents)]
+    data = list(enumerate(sents))
     data = pd.DataFrame(data, columns=["id", "query"])
     return data, message_list

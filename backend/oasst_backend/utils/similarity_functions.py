@@ -34,10 +34,7 @@ def embed_data(
     if cores == 1:
         embeddings = model.encode(unique_sentences, show_progress_bar=True, batch_size=batch_size)
     else:
-        devices = ["cpu"] * cores
-        if gpu:
-            devices = None  # use all CUDA devices
-
+        devices = None if gpu else ["cpu"] * cores
         # Start the multi-process pool on multiple devices
         print("Multi-process pool starting")
         pool = model.start_multi_process_pool(devices)
@@ -51,7 +48,7 @@ def embed_data(
 
     print("Embeddings computed")
 
-    mapping = {sentence: embedding for sentence, embedding in zip(unique_sentences, embeddings)}
+    mapping = dict(zip(unique_sentences, embeddings))
     embeddings = np.array([mapping[sentence] for sentence in sentences])
 
     return embeddings
@@ -96,8 +93,7 @@ def cos_sim_torch(embs_a: Tensor, embs_b: Tensor) -> Tensor:
 
     if len(embs_b.shape) == 1:
         embs_b = embs_b.unsqueeze(0)
-    A = F.cosine_similarity(embs_a.unsqueeze(1), embs_b.unsqueeze(0), dim=2)
-    return A
+    return F.cosine_similarity(embs_a.unsqueeze(1), embs_b.unsqueeze(0), dim=2)
 
 
 def gaussian_kernel_torch(embs_a, embs_b, sigma=1.0):
@@ -117,10 +113,7 @@ def gaussian_kernel_torch(embs_a, embs_b, sigma=1.0):
     # Compute the pairwise distances between the embeddings
     dist_matrix = torch.cdist(embs_a, embs_b)
 
-    # Compute the Gaussian kernel matrix
-    kernel_matrix = torch.exp(-(dist_matrix**2) / (2 * sigma**2))
-
-    return kernel_matrix
+    return torch.exp(-(dist_matrix**2) / (2 * sigma**2))
 
 
 def compute_cos_sim_kernel(embs, threshold=0.65, kernel_type="cosine"):
@@ -186,7 +179,7 @@ def k_hop_message_passing_sparse(A, node_features, k):
     A_k = A.copy()
     agg_features = node_features.copy()
 
-    for i in tqdm(range(k)):
+    for _ in tqdm(range(k)):
         # Compute the message passing for the k-hop neighborhood
         message = A_k.dot(node_features)
         # Apply a GCN layer to aggregate the messages

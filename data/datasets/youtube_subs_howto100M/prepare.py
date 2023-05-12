@@ -24,10 +24,8 @@ def get_video_ids(raw_file: str, video_id_pattern: str) -> List[str]:
             if not chunk:
                 break
             chunk = overlap + chunk
-            match = re.findall(video_id_pattern, chunk)
-            if match:
-                for vid in match:
-                    video_ids.append(vid.strip("'\""))
+            if match := re.findall(video_id_pattern, chunk):
+                video_ids.extend(vid.strip("'\"") for vid in match)
             overlap = chunk[-10:]  # in case video_id is split between chunks
     return list(set(video_ids))  # dedup
 
@@ -36,7 +34,7 @@ def get_title(video_id):
     params = {"format": "json", "url": f"https://www.youtube.com/watch?v={video_id}"}
     url = "https://www.youtube.com/oembed"
     query_string = urllib.parse.urlencode(params)
-    url = url + "?" + query_string
+    url = f"{url}?{query_string}"
     try:
         with urllib.request.urlopen(url) as response:
             response_text = response.read()
@@ -57,10 +55,8 @@ def generate_instruction(title: str) -> str:
 def get_subs(video_id, languages=["en"]):
     try:
         subs_dump = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
-        subs = ""
-        for utterence in subs_dump:
-            subs += utterence["text"] + " "
-        # TODO: add punctuation
+        subs = "".join(utterence["text"] + " " for utterence in subs_dump)
+            # TODO: add punctuation
     except urllib.request.HTTPError:
         subs = None
     return subs
@@ -93,13 +89,11 @@ def main(output_dir: str = "data"):
     dataset = []
     for video_id in tqdm(video_ids):
         title = get_title(video_id)
-        if title is None:  # video is not available any more
+        if title is None:
             continue
-        else:
-            instruction = generate_instruction(title)
-            if instruction:
-                response = get_subs(video_id)
-                dataset.append({"instruction": instruction, "response": response, "source": "YouTube"})
+        if instruction := generate_instruction(title):
+            response = get_subs(video_id)
+            dataset.append({"instruction": instruction, "response": response, "source": "YouTube"})
     print(f"Total {len(dataset)} pairs extracted.")
 
     print("Splitting and saving data...")

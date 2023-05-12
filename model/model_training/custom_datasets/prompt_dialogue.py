@@ -60,7 +60,7 @@ def load_oig_file(
             turns = []
             s = ""
             for x in fragments:
-                if x == "<human>" or x == "<bot>":
+                if x in ["<human>", "<bot>"]:
                     if role != x:
                         if role is not None:
                             turns.append(s)

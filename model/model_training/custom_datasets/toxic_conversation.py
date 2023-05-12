@@ -58,8 +58,7 @@ class ProsocialDialogue(Dataset):
         self.pairs = []
         for row in dataset:
             prompt = row["context"]
-            for answer in row["rots"]:
-                self.pairs.append((prompt, answer))
+            self.pairs.extend((prompt, answer) for answer in row["rots"])
 
     def __len__(self):
         return len(self.pairs)

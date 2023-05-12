@@ -180,7 +180,7 @@ async def get_or_create_user(
 
 
 async def query_user(db: database.AsyncSession, provider: str, provider_id: str) -> models.DbUser | None:
-    user = (
+    return (
         await db.exec(
             sqlmodel.select(models.DbUser)
             .filter(models.DbUser.provider == provider)
@@ -188,19 +188,19 @@ async def query_user(db: database.AsyncSession, provider: str, provider_id: str)
         )
     ).one_or_none()
 
-    return user
-
 
 async def create_tokens(user: models.DbUser) -> protocol.TokenPair:
     access_token = auth.create_access_token(user.id)
     refresh_token = await auth.create_refresh_token(user.id)
 
-    token_pair = protocol.TokenPair(
-        access_token=protocol.Token(access_token=access_token, token_type="bearer"),
-        refresh_token=protocol.Token(access_token=refresh_token, token_type="refresh"),
+    return protocol.TokenPair(
+        access_token=protocol.Token(
+            access_token=access_token, token_type="bearer"
+        ),
+        refresh_token=protocol.Token(
+            access_token=refresh_token, token_type="refresh"
+        ),
     )
-
-    return token_pair
 
 
 @router.get("/login/debug")
@@ -234,8 +234,7 @@ async def callback_debug(code: str, db: database.AsyncSession = Depends(deps.cre
         await db.refresh(user)
         logger.info(f"Created new debug user {user=}")
 
-    token_pair = await create_tokens(user)
-    return token_pair
+    return await create_tokens(user)
 
 
 @router.post("/trusted")

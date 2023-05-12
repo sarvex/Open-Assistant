@@ -40,8 +40,7 @@ def compute_metrics(eval_pred, preprocess_fns, metrics):
 
 
 def preprocess_logits_for_metrics(logits, labels):
-    pred_ids = torch.argmax(logits, dim=-1)
-    return pred_ids
+    return torch.argmax(logits, dim=-1)
 
 
 class SFTTrainer(Trainer):
@@ -149,7 +148,7 @@ class SFTTrainer(Trainer):
             train_sampler = self.sampler
             logging.warning("Custom sampler found!")
 
-        dataloader = DataLoader(
+        return DataLoader(
             train_dataset,
             batch_size=self._train_batch_size,
             sampler=train_sampler,
@@ -159,7 +158,6 @@ class SFTTrainer(Trainer):
             pin_memory=self.args.dataloader_pin_memory,
             worker_init_fn=seed_worker,
         )
-        return dataloader
 
 
 def argument_parsing(notebook=False, notebook_args=None):
@@ -195,7 +193,7 @@ def argument_parsing(notebook=False, notebook_args=None):
     # Config from YAML
     conf = {}
     configs = read_yamls("./configs")
-    conf.update(configs["defaults"])
+    conf |= configs["defaults"]
     try:
         for name in args.configs:
             if "," in name:

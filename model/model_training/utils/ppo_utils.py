@@ -37,7 +37,7 @@ class CustomCausalLMHydraWithValueHead(AutoModelForCausalLMWithHydraValueHead):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def from_pretrained(cls, config, tokenizer, kwargs=None, revision=None):  # noqa: max-complexity
+    def from_pretrained(cls, config, tokenizer, kwargs=None, revision=None):    # noqa: max-complexity
         """
         Our custom loader that just modifies the loading of the base model so that patching and other stuff are supported.
         """
@@ -84,7 +84,6 @@ class CustomCausalLMHydraWithValueHead(AutoModelForCausalLMWithHydraValueHead):
             if not os.path.exists(filename):
                 try:
                     filename = hf_hub_download(pretrained_model_name_or_path, "pytorch_model.bin", revision=revision)
-                # Sharded
                 except Exception:
                     if os.path.exists(sharded_index_filename):
                         index_file_name = sharded_index_filename
@@ -96,11 +95,11 @@ class CustomCausalLMHydraWithValueHead(AutoModelForCausalLMWithHydraValueHead):
                         )
                     with open(index_file_name, "r") as f:
                         index = json.load(f)
-                    # Collect files containing weights from supported modules
-                    files_to_download = set()
-                    for k, v in index["weight_map"].items():
-                        if any([module in k for module in cls._supported_modules]):
-                            files_to_download.add(v)
+                    files_to_download = {
+                        v
+                        for k, v in index["weight_map"].items()
+                        if any(module in k for module in cls._supported_modules)
+                    }
                     is_sharded = True
 
             if is_sharded:
@@ -112,7 +111,7 @@ class CustomCausalLMHydraWithValueHead(AutoModelForCausalLMWithHydraValueHead):
                     # Download if shard file doesn't exist locally
                     if not os.path.exists(filename):
                         filename = hf_hub_download(pretrained_model_name_or_path, shard_file, revision=revision)
-                    state_dict.update(torch.load(filename, map_location="cpu"))
+                    state_dict |= torch.load(filename, map_location="cpu")
             else:
                 state_dict = torch.load(filename, map_location="cpu")
         else:
@@ -158,7 +157,7 @@ class CustomPPOTrainer(AcceleratePPOTrainer, AccelerateRLTrainer):
         """
         Decode tensor generations into lists of strings (`samples`: List[str], `prompts`: List[str], `outputs`: List[str])
         """
-        assert append_eos_token is True
+        assert append_eos_token
 
         if prompt_sizes is None:
             # Assuming prompts were left-padded
@@ -169,7 +168,6 @@ class CustomPPOTrainer(AcceleratePPOTrainer, AccelerateRLTrainer):
         for prompt, sample, prompt_size in zip(prompts, samples, prompt_sizes):
             if self.config.model.model_arch_type == "seq2seq":
                 raise NotImplementedError("Decoding for seq2seq models is not implemented yet")
-                output_start_ix = 0
             else:
                 output_start_ix = prompt_size
 
@@ -264,13 +262,7 @@ class CustomPPOTrainer(AcceleratePPOTrainer, AccelerateRLTrainer):
         kwargs["forced_eos_token_id"] = self.tokenizer.eos_token_id
         kwargs["suppress_tokens"] = [self.tokenizer.pad_token_id]
 
-        preds = super().generate(input_ids, *args, **kwargs)
-
-        # self.model.train()
-
-        # print('Done generation', self.accelerator.device)
-
-        return preds
+        return super().generate(input_ids, *args, **kwargs)
 
     def generate_eval(self, input_ids, *args, **kwargs):
         # if self.model.ds_zero3:
@@ -294,13 +286,9 @@ class CustomPPOTrainer(AcceleratePPOTrainer, AccelerateRLTrainer):
         kwargs["forced_eos_token_id"] = self.tokenizer.eos_token_id
         kwargs["suppress_tokens"] = [self.tokenizer.pad_token_id]
 
-        preds = super().generate(input_ids, *args, **kwargs)
+        return super().generate(input_ids, *args, **kwargs)
 
-        # print('Done generation', self.accelerator.device)
-
-        return preds
-
-    def make_experience(self, num_rollouts: int = 1024, iter_count: int = 0):  # noqa:
+    def make_experience(self, num_rollouts: int = 1024, iter_count: int = 0):    # noqa:
         """
         Replace padding with pad_token_id
         """
@@ -407,63 +395,31 @@ class CustomPPOTrainer(AcceleratePPOTrainer, AccelerateRLTrainer):
             elif self.config.method.scale_reward == "ref":
                 scores /= self.ref_std
 
-            clip_reward = self.config.method.cliprange_reward
-            if clip_reward:
+            if clip_reward := self.config.method.cliprange_reward:
                 scores = torch.clip(scores, -clip_reward, clip_reward)
 
-            # Precompute logprobs, values
             if self.config.model.model_arch_type == "seq2seq":
                 raise NotImplementedError
-                attention_mask = batch.attention_mask.to(device)
-                prompt_tensors = batch.input_ids.to(device)
-                decoder_attention_mask = sample_outputs.not_equal(self.tokenizer.pad_token_id)
-                decoder_attention_mask[:, 0] = 1
-                with torch.no_grad():
-                    outputs = self.model(
-                        input_ids=prompt_tensors,
-                        attention_mask=attention_mask,
-                        decoder_input_ids=sample_outputs,
-                        decoder_attention_mask=decoder_attention_mask,
-                    )
-                    logits = outputs.logits
-                    values = outputs.value
-                    if hasattr(self.model, "frozen_head"):
-                        ref_logits = self.model.forward_hydra(
-                            input_ids=prompt_tensors,
-                            attention_mask=attention_mask,
-                            decoder_input_ids=sample_outputs,
-                            decoder_attention_mask=decoder_attention_mask,
-                            return_dict=True,
-                        ).logits
-                    else:
-                        ref_logits = self.ref_model(
-                            input_ids=prompt_tensors,
-                            attention_mask=attention_mask,
-                            decoder_input_ids=sample_outputs,
-                            decoder_attention_mask=decoder_attention_mask,
-                            return_dict=True,
-                        ).logits
-            else:
-                all_tokens = torch.cat((prompt_tensors.to(device), sample_outputs), dim=1)
-                attention_mask = all_tokens.not_equal(self.tokenizer.pad_token_id).long().to(device)
-                with torch.no_grad():
-                    logits, *_, values = self.model(
-                        all_tokens,
-                        attention_mask=attention_mask,
-                    )
-                    # TODO(dahoas): When hydra model works need to also support generation on hydra head
-                    # if hasattr(self.model, "frozen_head"):
-                    #     ref_logits = self.model.forward_hydra(
-                    #         all_tokens,
-                    #         attention_mask=attention_mask,
-                    #         return_dict=True,
-                    #     ).logits
-                    # else:
-                    ref_logits = self.ref_model(
-                        all_tokens,
-                        attention_mask,
-                    )
-                    ref_logits = ref_logits.to(device)
+            all_tokens = torch.cat((prompt_tensors.to(device), sample_outputs), dim=1)
+            attention_mask = all_tokens.not_equal(self.tokenizer.pad_token_id).long().to(device)
+            with torch.no_grad():
+                logits, *_, values = self.model(
+                    all_tokens,
+                    attention_mask=attention_mask,
+                )
+                # TODO(dahoas): When hydra model works need to also support generation on hydra head
+                # if hasattr(self.model, "frozen_head"):
+                #     ref_logits = self.model.forward_hydra(
+                #         all_tokens,
+                #         attention_mask=attention_mask,
+                #         return_dict=True,
+                #     ).logits
+                # else:
+                ref_logits = self.ref_model(
+                    all_tokens,
+                    attention_mask,
+                )
+                ref_logits = ref_logits.to(device)
 
             if self.config.model.model_arch_type == "seq2seq":
                 logprobs = logprobs_of_labels(logits[:, :-1, :], sample_outputs[:, 1:])

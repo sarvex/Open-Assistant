@@ -13,10 +13,10 @@ def load_and_split(foldername, num_words):
     ls = os.listdir(foldername)
     X = []
     Y = []
-    langmap = dict()
+    langmap = {}
     for idx, x in enumerate(ls):
         print("loading language", x)
-        with open(foldername + "/" + x, "r") as reader:
+        with open(f"{foldername}/{x}", "r") as reader:
             tmp = reader.read().split(" ")
             tmp = [" ".join(tmp[i : i + num_words]) for i in range(0, 100_000, num_words)]
             X.extend(tmp)

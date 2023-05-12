@@ -139,7 +139,7 @@ def fetch_tree_messages_and_avg_labels(
 
     for l in TextLabel:
         args.append(func.avg(TextLabels.labels[l].cast(sa.Float)).label(l.value))
-        args.append(func.count(TextLabels.labels[l]).label(l.value + "_count"))
+        args.append(func.count(TextLabels.labels[l]).label(f"{l.value}_count"))
 
     qry = db.query(*args).select_from(Message).outerjoin(TextLabels, Message.id == TextLabels.message_id)
     if message_tree_id:
@@ -202,7 +202,9 @@ def export_trees(
             messages.append(msg)
             if export_labels:
                 labels: LabelValues = {
-                    l.value: LabelAvgValue(value=r[l.value], count=r[l.value + "_count"])
+                    l.value: LabelAvgValue(
+                        value=r[l.value], count=r[f"{l.value}_count"]
+                    )
                     for l in TextLabel
                     if r[l.value] is not None
                 }
@@ -243,13 +245,14 @@ def export_trees(
                     msg = r["Message"]
                     messages.append(msg)
                     labels: LabelValues = {
-                        l.value: LabelAvgValue(value=r[l.value], count=r[l.value + "_count"])
+                        l.value: LabelAvgValue(
+                            value=r[l.value], count=r[f"{l.value}_count"]
+                        )
                         for l in TextLabel
                         if r[l.value] is not None
                     }
                     message_labels[msg.id] = labels
 
-                message_trees.append(messages)
             else:
                 messages = fetch_tree_messages(
                     db,
@@ -260,8 +263,7 @@ def export_trees(
                     lang=None,  # pass None here, trees were selected based on lang of prompt
                     review_result=review_result,
                 )
-                message_trees.append(messages)
-
+            message_trees.append(messages)
         if review_result is False or deleted is True or synthetic is True:
             # when exporting filtered we don't have complete message trees, export as list
             messages = [m for t in message_trees for m in t]  # flatten message list
@@ -394,8 +396,7 @@ def parse_args():
         help="Seed for the anonymizer. If not specified, no anonymization will be performed.",
     )
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

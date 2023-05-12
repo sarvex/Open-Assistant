@@ -44,17 +44,17 @@ def get_all_filenames():
 
 def download_url(dataset_name: str, url: str):
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    cache_path = os.path.join(DOWNLOAD_DIR, dataset_name + ".xml")
+    cache_path = os.path.join(DOWNLOAD_DIR, f"{dataset_name}.xml")
     if os.path.exists(cache_path):
         print("Using cached: ", cache_path)
-        return cache_path
     else:
         print("Downloading xml: ", dataset_name)
         response = requests.get(url)
         print("Finished downloading: ", dataset_name)
         with open(cache_path, "wb") as f:
             f.write(response.content)
-        return cache_path
+
+    return cache_path
 
 
 def download_all():

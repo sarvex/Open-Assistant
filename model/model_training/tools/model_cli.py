@@ -41,19 +41,18 @@ if __name__ == "__main__":
         base_dict = {k[11:]: v for k, v in ckpt["module"].items() if not k.startswith("base_model.transformer")}
         # base_dict = {k[11:]: v for k, v in ckpt['module'].items()}
         print(model.load_state_dict(base_dict, strict=False))
+    elif args.eightbit:
+        model = get_specific_model(
+            args.model_path,
+            load_in_8bit=True,
+            device_map="auto",
+            low_cpu_mem_usage=True,
+            torch_dtype=torch.float16,
+            offload_state_dict=True,
+            cache_dir=args.cache_dir,
+        )
     else:
-        if args.eightbit:
-            model = get_specific_model(
-                args.model_path,
-                load_in_8bit=True,
-                device_map="auto",
-                low_cpu_mem_usage=True,
-                torch_dtype=torch.float16,
-                offload_state_dict=True,
-                cache_dir=args.cache_dir,
-            )
-        else:
-            model = get_specific_model(args.model_path, cache_dir=args.cache_dir, torch_dtype=torch.float16)
+        model = get_specific_model(args.model_path, cache_dir=args.cache_dir, torch_dtype=torch.float16)
 
     model.gradient_checkpointing_enable()  # reduce number of stored activations
     # tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_path)
@@ -99,11 +98,7 @@ if __name__ == "__main__":
                     pad_token_id=tokenizer.eos_token_id,
                 )
 
-            if out[0][-1] == tokenizer.eos_token_id:
-                response = out[0][:-1]
-            else:
-                response = out[0]
-
+            response = out[0][:-1] if out[0][-1] == tokenizer.eos_token_id else out[0]
             response = tokenizer.decode(response).split(QA_SPECIAL_TOKENS["Answer"])[-1]
             print(f"Bot: {response}")
             conversation_history.append(response)

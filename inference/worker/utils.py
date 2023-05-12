@@ -49,13 +49,10 @@ class TokenBuffer:
                     break
             else:
                 self.tokens.extend(reversed(end_tokens))
-            yield from self.tokens
         elif reason == "eos_token":
             if self.tokens:
                 self.tokens.pop()
-            yield from self.tokens
-        else:
-            yield from self.tokens
+        yield from self.tokens
 
 
 def wait_for_inference_server(http: "HttpClient", timeout: int = 600):
@@ -79,11 +76,7 @@ def text_to_events(text: str, seed: int | None = None, pause: float = 0.0):
     tokens = text.split()
     for token in tokens[:-1]:
         yield interface.GenerateStreamResponse(
-            token=interface.Token(
-                text=token + " ",
-                logprob=0.1,
-                id=0,
-            ),
+            token=interface.Token(text=f"{token} ", logprob=0.1, id=0)
         )
         if pause > 0:
             time.sleep(pause)

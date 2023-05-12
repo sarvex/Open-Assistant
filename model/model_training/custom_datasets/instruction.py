@@ -38,8 +38,5 @@ class InstructionDataset(Dataset):
 
     def __getitem__(self, idx) -> DatasetEntry:
         data = self.dataset[idx]
-        lang = None
-        # these datasets have been found to have above 95% english sentences.
-        if self.name in ["grade_school_math_instructions"]:
-            lang = "en"
+        lang = "en" if self.name in ["grade_school_math_instructions"] else None
         return DatasetEntry(questions=[data[self.instruction_column]], answers=[data[self.response_column]], lang=lang)

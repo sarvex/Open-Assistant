@@ -10,10 +10,11 @@ class Printer(typing.Protocol):
 
 
 def _unpack(value):
-    if len(value.shape) > 1 and value.shape[0] > 1:
-        raise ValueError("HFStreamer only supports batch size 1")
-    elif len(value.shape) > 1:
-        value = value[0]
+    if len(value.shape) > 1:
+        if value.shape[0] > 1:
+            raise ValueError("HFStreamer only supports batch size 1")
+        else:
+            value = value[0]
     return value.cpu().tolist()
 
 

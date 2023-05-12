@@ -92,8 +92,7 @@ def trace_model(model, tokenizer, device="cuda:0", trace_example="reward model's
     outputs = model(**inputs)
     print(f"Output shape: {outputs.shape}")
 
-    traced_script_module = torch.jit.trace(model, (inputs["input_ids"], inputs["attention_mask"]))
-    return traced_script_module
+    return torch.jit.trace(model, (inputs["input_ids"], inputs["attention_mask"]))
 
 
 def main():

@@ -51,7 +51,7 @@ def custom_json_deserializer(s):
 
 
 def make_engine():
-    engine = create_async_engine(
+    return create_async_engine(
         settings.database_uri,
         json_serializer=custom_json_serializer,
         json_deserializer=custom_json_deserializer,
@@ -60,7 +60,6 @@ def make_engine():
         echo=settings.db_echo,
         future=True,
     )
-    return engine
 
 
 db_engine = make_engine()

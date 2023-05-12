@@ -22,8 +22,7 @@ def parse_args():
     )
     parser.add_argument("--instructions", type=str, help="xlsx file with instructions")
     parser.add_argument("--exclude-nulls", action="store_true", default=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

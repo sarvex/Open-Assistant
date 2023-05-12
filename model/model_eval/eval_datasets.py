@@ -51,8 +51,7 @@ class SamplingDataset(Dataset):
             prompt = data["prompt"]
             for result in data["results"]:
                 sampling = result["sampling_config"]
-                for output in result["outputs"]:
-                    self.dataset.append((prompt, output, sampling))
+                self.dataset.extend((prompt, output, sampling) for output in result["outputs"])
                 if sampling not in sampling_list:
                     sampling_list.append(sampling)
 

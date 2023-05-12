@@ -80,8 +80,7 @@ def parse_args():
         help="Write jsonl file with message text strings only",
     )
     parser.add_argument("--exclude-nulls", action="store_true", default=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -126,13 +125,15 @@ def main():
         ):
             return False
 
-        if exclude_normal is True and not msg.deleted and not msg.synthetic and msg.review_result:
+        if (
+            exclude_normal
+            and not msg.deleted
+            and not msg.synthetic
+            and msg.review_result
+        ):
             return False
 
-        if spam is not None and spam != (not msg.review_result):
-            return False
-
-        return True
+        return spam is None or spam == (not msg.review_result)
 
     print(f"Reading: {args.input_file_name}")
     messages = read_message_list(args.input_file_name, approve_message)

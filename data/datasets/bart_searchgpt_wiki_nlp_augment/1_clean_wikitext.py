@@ -51,10 +51,8 @@ def remove_all_parentesis(article: str) -> str:
 if __name__ == "__main__":
     wiki_dataset = load_dataset("wikipedia", "20220301.en", split="train")
 
-    count = 0
     id_list, url_list, text_list, title_list, word_num_list = [], [], [], [], []
-    for page in tqdm(wiki_dataset):
-        count += 1
+    for count, page in enumerate(tqdm(wiki_dataset), start=1):
         if count % 1000 == 1:
             date = time.strftime("%Y%m%d_%H%M%S", time.localtime())
             print(f"[{date}] count: {count}")

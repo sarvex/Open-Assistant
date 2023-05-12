@@ -29,8 +29,7 @@ def parse_args():
         required=True,
     )
     parser.add_argument("--exclude-nulls", action="store_true", default=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -42,7 +41,7 @@ def main():
 
     print(f"Found {len(messages)} matching messages.")
 
-    tree_ids = list(set(m.message_tree_id for m in messages))
+    tree_ids = list({m.message_tree_id for m in messages})
     random.shuffle(tree_ids)
 
     val_size = len(tree_ids) * args.val_percent // 100

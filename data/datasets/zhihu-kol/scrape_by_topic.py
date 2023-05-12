@@ -98,8 +98,7 @@ def get_all_href(page: Union[Page, Locator]) -> List[str]:
             return hrefs;
         }"""
     )
-    valid_hrefs = [x for x in hrefs if isinstance(x, str) and "https://" in x]
-    return valid_hrefs
+    return [x for x in hrefs if isinstance(x, str) and "https://" in x]
 
 
 """
@@ -168,7 +167,11 @@ def end_to_end_auto_scrape():
             try:
                 page.goto(topic_url)
                 all_hrefs = get_all_href(page)
-                question_urls = set([x for x in all_hrefs if "/question/" in x and "waiting" not in x])
+                question_urls = {
+                    x
+                    for x in all_hrefs
+                    if "/question/" in x and "waiting" not in x
+                }
                 # people_urls = [x for x in all_hrefs if "/people/" in x]
                 for qId in question_urls:
                     qUrl = qId.replace("?write", "")
@@ -177,9 +180,11 @@ def end_to_end_auto_scrape():
                     question_title = page.locator(".QuestionHeader-title").all_inner_texts()[0]
                     all_hrefs = get_all_href(page.locator(".QuestionAnswers-answers"))
                     # search for all question-answer url
-                    matches_question_answer_url = set(
-                        [s for s in all_hrefs if isinstance(s, str) and re.search(pattern, s)]
-                    )
+                    matches_question_answer_url = {
+                        s
+                        for s in all_hrefs
+                        if isinstance(s, str) and re.search(pattern, s)
+                    }
 
                     for k in matches_question_answer_url:
                         elem = k.split("/")

@@ -86,12 +86,9 @@ class PerDatasetSampler(DistributedSampler):
         self.dataset_size_per_epoch = dataset_size_per_epoch
         self.num_datasets = len(dataset_sizes)
         self.shuffle = shuffle
-        self.rank = rank
         self.world_size = world_size
 
-        if world_size == 1:
-            self.rank = 0
-
+        self.rank = 0 if world_size == 1 else rank
         self.num_samples = sum(dataset_size_per_epoch)
         self.seed = seed
         self.samples_length = samples_length
@@ -123,9 +120,8 @@ class PerDatasetSampler(DistributedSampler):
                 # quasi random basically
                 for i in range(0, len(epoch_idx), 200):  # this should be batch_size dependent
                     random.shuffle(epoch_idx[i : i + 200])
-        else:
-            if self.shuffle:
-                random.shuffle(epoch_idx)
+        elif self.shuffle:
+            random.shuffle(epoch_idx)
 
         # split epoch_idx in world_size chunks
         epoch_idx = epoch_idx[self.rank : self.num_samples : self.world_size]
@@ -149,20 +145,22 @@ def get_dataset_fractions(conf, dataset_sizes: List[int], verbose: bool = False)
     fractions = []
     for i, data_config in enumerate(conf):
         dataset_name, _ = get_dataset_name_and_kwargs_from_data_config(data_config)
-        if isinstance(data_config, dict):
-            if "fraction" in data_config[dataset_name]:
-                if data_config[dataset_name]["fraction"] <= 0:
-                    raise ValueError("Please specify fraction as a value between 0 < fraction <= 1")
-                fractions.append(min(1, data_config[dataset_name]["fraction"]))
-            elif "size" in data_config[dataset_name]:
-                if data_config[dataset_name]["size"] > dataset_sizes[i]:
-                    raise ValueError(f"Please specify a size smaller than number of examples: {dataset_sizes[i]:,.0f}")
-                fractions.append(data_config[dataset_name]["size"] / dataset_sizes[i])
-            else:
-                fractions.append(1)
+        if (
+            isinstance(data_config, dict)
+            and "fraction" in data_config[dataset_name]
+        ):
+            if data_config[dataset_name]["fraction"] <= 0:
+                raise ValueError("Please specify fraction as a value between 0 < fraction <= 1")
+            fractions.append(min(1, data_config[dataset_name]["fraction"]))
+        elif (
+            isinstance(data_config, dict)
+            and "size" in data_config[dataset_name]
+        ):
+            if data_config[dataset_name]["size"] > dataset_sizes[i]:
+                raise ValueError(f"Please specify a size smaller than number of examples: {dataset_sizes[i]:,.0f}")
+            fractions.append(data_config[dataset_name]["size"] / dataset_sizes[i])
         else:
             fractions.append(1)
-
         if verbose:
             print(f"{dataset_name}: {fractions[-1]:.2%} ({int(dataset_sizes[i]*fractions[-1])})")
     return fractions
@@ -200,7 +198,7 @@ def match_tokenizer_name(model_name: str) -> TokenizerConfig:
     tokenizer_config_matches = [config for name, config in TOKENIZER_CONFIGS.items() if name in model_name]
     if not tokenizer_config_matches:
         raise ValueError(f"Cannot find any tokeniser configuration to match {model_name=}")
-    elif 1 < len(tokenizer_config_matches):
+    elif len(tokenizer_config_matches) > 1:
         raise ValueError(f"Found multiple tokeniser configuration matches for {model_name=}")
     else:
         return tokenizer_config_matches[0]
@@ -341,8 +339,8 @@ def get_model(conf, tokenizer, pad_vocab_size_to_multiple_of=16, check_freeze_la
             model = freeze_top_n_layers(model, conf.freeze_layer)
 
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-    params = sum([p.numel() for p in model_parameters])
-    print("Number of trainable parameters: {}M".format(int(params / 1e6)))
+    params = sum(p.numel() for p in model_parameters)
+    print(f"Number of trainable parameters: {int(params / 1000000.0)}M")
 
     patch_model(model, resid_pdrop=conf.residual_dropout, flash_attention=conf.use_flash_attention)
 
@@ -350,17 +348,16 @@ def get_model(conf, tokenizer, pad_vocab_size_to_multiple_of=16, check_freeze_la
 
 
 def get_dataset_name_and_kwargs_from_data_config(data_config):
-    if isinstance(data_config, dict):
-        name = list(data_config.keys())[0]
-
-        # first copy the dict, then remove the size and fraction
-        kwargs = copy.deepcopy(data_config[name])
-
-        kwargs.pop("fraction", None)
-        kwargs.pop("size", None)
-        return name, kwargs
-    else:
+    if not isinstance(data_config, dict):
         return data_config, {}
+    name = list(data_config.keys())[0]
+
+    # first copy the dict, then remove the size and fraction
+    kwargs = copy.deepcopy(data_config[name])
+
+    kwargs.pop("fraction", None)
+    kwargs.pop("size", None)
+    return name, kwargs
 
 
 def get_dataset(
@@ -402,7 +399,7 @@ def read_yamls(dir):
     for config_file in Path(dir).glob("**/*.yaml"):
         no_conf = False
         with config_file.open("r") as f:
-            conf.update(yaml.safe_load(f))
+            conf |= yaml.safe_load(f)
 
     if no_conf:
         print(f"WARNING: No yaml files found in {dir}")
@@ -423,8 +420,17 @@ def train_val_dataset(dataset, val_split=0.2):
 def process_output(output: str, method: str = "v2", bot_name: str = "Joi") -> str:
     if method == "v2":
         answer = output.split(QA_SPECIAL_TOKENS["Answer"])[-1]
-        answer = answer.split("</s>")[0].replace("<|endoftext|>", "").lstrip().split(QA_SPECIAL_TOKENS["Answer"])[0]
+        return (
+            answer.split("</s>")[0]
+            .replace("<|endoftext|>", "")
+            .lstrip()
+            .split(QA_SPECIAL_TOKENS["Answer"])[0]
+        )
     else:
-        answer = output.split("\n\n{}:".format(bot_name))[-1]
-        answer = answer.split("</s>")[0].replace("<|endoftext|>", "").lstrip().split("\n\n{}:".format(bot_name))[0]
-    return answer
+        answer = output.split(f"\n\n{bot_name}:")[-1]
+        return (
+            answer.split("</s>")[0]
+            .replace("<|endoftext|>", "")
+            .lstrip()
+            .split(f"\n\n{bot_name}:")[0]
+        )

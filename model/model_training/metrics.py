@@ -18,13 +18,12 @@ def reward_accuracy(eval_pred):
     pos_scores = np.array(pos_scores).reshape(-1, 1)
     neg_scores = np.array(neg_scores).reshape(-1, 1)
 
-    metrics = {
+    return {
         "pos_score": np.mean(pos_scores),
         "neg_score": np.mean(neg_scores),
         "score_diff": np.mean(pos_scores - neg_scores),
         "accuracy": np.mean(pos_scores > neg_scores),
     }
-    return metrics
 
 
 def kendall_tau(eval_pred):
@@ -92,6 +91,6 @@ class RewardMetrics:
     def __call__(self, eval_pred):
         results = {}
         for metric in self.metrics:
-            results.update(metric(eval_pred))
+            results |= metric(eval_pred)
 
         return results

@@ -41,47 +41,36 @@ method: str = args.format
 def talk(human_input: str, history: List[Tuple[str, str]], sep_token: str, prefix=""):
     histories = []
     if method == "v2":
+        histories.extend(
+            f'{QA_SPECIAL_TOKENS["Question"]}{question}{QA_SPECIAL_TOKENS["Answer"]}{answer}'
+            for question, answer in history
+        )
         prefix = "<prefix>You are a helpful assistant called Joi trained by OpenAssistant on large corpus of data, you will now help user to answer the question as concise as possible</prefix>"
-        for question, answer in history:
-            histories.append(
-                "{}{}{}{}".format(QA_SPECIAL_TOKENS["Question"], question, QA_SPECIAL_TOKENS["Answer"], answer)
-            )
-        if len(histories) > 0:
+        if histories:
             prefix += sep_token.join(histories)
             # add sep at the end
             prefix += sep_token
-        prefix += "{}{}{}".format(QA_SPECIAL_TOKENS["Question"], human_input, QA_SPECIAL_TOKENS["Answer"])
-    # elif method == "v3":
-    #     personality = "You are a helpful assistant called Joi, you are a smart and helpful bot."
-    #     prefix = f"{SeqToken.begin}{ChatRole.system}{SeqToken.delimiter}{personality}{SeqToken.end}"
-    #     for question, answer in history:
-    #         histories.append(
-    #             f"{SeqToken.begin}{ChatRole.prompter}{SeqToken.delimiter}{question}{SeqToken.end}"
-    #             + f"{SeqToken.begin}{ChatRole.assistant}{SeqToken.delimiter}{answer}{SeqToken.end}"
-    #         )
-    #     if len(histories) > 0:
-    #         prefix += "".join(histories)
-    #         # add sep at the end
-    #     prefix += f"{SeqToken.begin}{ChatRole.prompter}{SeqToken.delimiter}{human_input}{SeqToken.end}{SeqToken.begin}{ChatRole.assistant}{SeqToken.delimiter}"
+        prefix += f'{QA_SPECIAL_TOKENS["Question"]}{human_input}{QA_SPECIAL_TOKENS["Answer"]}'
     elif method == "v2.5":
         # personality = "You are a helpful assistant called Joi, you are a smart and helpful bot."
         # prefix = f"{ChatRole.system}{personality}{SeqToken.end}"
-        for question, answer in history:
-            histories.append(
-                # f"{ChatRole.prompter}{question}{SeqToken.end}" + f"{ChatRole.assistant}{answer}{SeqToken.end}"
-                f"{ChatRole.prompter}{question}</s>"
-                + f"{ChatRole.assistant}{answer}</s>"
-            )
-        if len(histories) > 0:
+        histories.extend(
+            f"{ChatRole.prompter}{question}</s>"
+            + f"{ChatRole.assistant}{answer}</s>"
+            for question, answer in history
+        )
+        if histories:
             prefix += "".join(histories)
             # add sep at the end
         prefix += f"{ChatRole.prompter}{human_input}</s>{ChatRole.assistant}"
     else:
-        for question, answer in history:
-            histories.append("User: " + question + "\n\n{}: ".format(bot_name) + answer + "\n")
-        if len(histories) > 0:
+        histories.extend(
+            f"User: {question}" + f"\n\n{bot_name}: " + answer + "\n"
+            for question, answer in history
+        )
+        if histories:
             prefix += "\n".join(histories)
-        prefix += "\nUser: " + human_input + "\n\n{}: ".format(bot_name)
+        prefix += "\nUser: " + human_input + f"\n\n{bot_name}: "
 
     return prefix
 
@@ -92,13 +81,14 @@ def process_output(output):
         answer = answer.split("</s>")[0].replace("<|endoftext|>", "").lstrip().split(QA_SPECIAL_TOKENS["Answer"])[0]
     elif method == "v2.5":
         answer = output.split(f"{ChatRole.assistant}")[-1]
-        # answer = answer.split("</s>")[0].replace(SeqToken.end, "").lstrip()
-    # elif method == "v3":
-    #     answer = output.split(f"{SeqToken.begin}{ChatRole.assistant}{SeqToken.delimiter}")[-1]
-    #     answer = answer.split("</s>")[0].replace(SeqToken.end, "").lstrip()
     else:
-        answer = output.split("\n\n{}:".format(bot_name))[-1]
-        answer = answer.split("</s>")[0].replace("<|endoftext|>", "").lstrip().split("\n\n{}:".format(bot_name))[0]
+        answer = output.split(f"\n\n{bot_name}:")[-1]
+        answer = (
+            answer.split("</s>")[0]
+            .replace("<|endoftext|>", "")
+            .lstrip()
+            .split(f"\n\n{bot_name}:")[0]
+        )
     return answer
 
 

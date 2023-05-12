@@ -25,8 +25,7 @@ async def find_compliance_work_request_message(
         )
         .order_by(sql_random())
     )
-    message = (await session.exec(query)).first()
-    return message
+    return (await session.exec(query)).first()
 
 
 async def should_do_compliance_check(session: database.AsyncSession, worker_id: str) -> bool:
@@ -37,9 +36,7 @@ async def should_do_compliance_check(session: database.AsyncSession, worker_id: 
         return False
     if worker.next_compliance_check is None:
         return True
-    if worker.next_compliance_check < datetime.datetime.utcnow():
-        return True
-    return False
+    return worker.next_compliance_check < datetime.datetime.utcnow()
 
 
 async def run_compliance_check(websocket: fastapi.WebSocket, worker_id: str, worker_config: inference.WorkerConfig):

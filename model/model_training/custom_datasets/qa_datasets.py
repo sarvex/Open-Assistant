@@ -60,7 +60,7 @@ def index_trivia_qa_context(example):
         context = ""
     answer = example["answer"]["aliases"][np.random.randint(len(example["answer"]["aliases"]))]
 
-    return context + " " + question, answer
+    return f"{context} {question}", answer
 
 
 def index_adversarial_qa(example):
@@ -92,10 +92,10 @@ def index_eli5(example):
 
 
 def index_gsm_hard(example):
-    return example[
-        "input"
-    ] + "\nWrite a small snippet of python code to answer this", "Here's the code solution to the question\n```python\n{}\n```\n The answer should be {}".format(
-        example["code"].strip(), example["target"]
+    return (
+        example["input"]
+        + "\nWrite a small snippet of python code to answer this",
+        f"""Here's the code solution to the question\n```python\n{example["code"].strip()}\n```\n The answer should be {example["target"]}""",
     )
 
 
@@ -154,26 +154,25 @@ class QADataset(Dataset):
 
     def __init__(self, dataset, cache_dir, split):
         self.no_val = False
-        if dataset in self.DATASET_FORMAT_MAPPING:
-            context = self.DATASET_FORMAT_MAPPING[dataset]
-            if split == "validation" and "validation" in context:
-                split = context["validation"]
-            if "name" not in context:
-                context["name"] = dataset
-            if "split_postfix" in context:
-                # append a postfix to split name, used in eli5 : test_eli5, test_asks, test_askh
-                split += context["split_postfix"]
-            if "params" not in context:
-                context["params"] = {"cache_dir": cache_dir, "split": split}
-            else:
-                context["params"]["cache_dir"] = cache_dir
-                context["params"]["split"] = split
-            if "no_val" in context:
-                self.no_val = True
-            self.index_fn = context["index_fn"]
-            self.dataset = load_dataset(context["name"], **context["params"])
+        if dataset not in self.DATASET_FORMAT_MAPPING:
+            raise ValueError(f"Unknown dataset : {dataset}")
+        context = self.DATASET_FORMAT_MAPPING[dataset]
+        if split == "validation" and "validation" in context:
+            split = context["validation"]
+        if "name" not in context:
+            context["name"] = dataset
+        if "split_postfix" in context:
+            # append a postfix to split name, used in eli5 : test_eli5, test_asks, test_askh
+            split += context["split_postfix"]
+        if "params" not in context:
+            context["params"] = {"cache_dir": cache_dir, "split": split}
         else:
-            raise ValueError("Unknown dataset : " + dataset)
+            context["params"]["cache_dir"] = cache_dir
+            context["params"]["split"] = split
+        if "no_val" in context:
+            self.no_val = True
+        self.index_fn = context["index_fn"]
+        self.dataset = load_dataset(context["name"], **context["params"])
         self.length = len(self.dataset)
 
     def __len__(self):
@@ -190,7 +189,7 @@ class WebGPT(Dataset):
     def __init__(self, mode: str = "sft", max_answers: int = 5) -> None:
         super().__init__()
         self.mode = mode
-        assert mode in ("sft", "rm", "rl")
+        assert mode in {"sft", "rm", "rl"}
 
         dataset = load_dataset("openai/webgpt_comparisons")
 
@@ -217,8 +216,7 @@ class WebGPT(Dataset):
         return len(self.rows)
 
     def __getitem__(self, index) -> DatasetEntry:
-        dialogue = self.rows[index]
-        return dialogue
+        return self.rows[index]
 
 
 class SODA(Dataset):
@@ -226,12 +224,7 @@ class SODA(Dataset):
 
     def process_soda_convo(self, data: dict[str, Any], input_max_length: int) -> DatasetEntry | None:
         play_as = data["speakers"][1]
-        dialogue_bg = "{}{}".format(
-            # QA_SPECIAL_TOKENS["StartPrefix"],
-            data["narrative"],
-            " You are {}.".format(play_as),
-            # QA_SPECIAL_TOKENS["EndPrefix"],
-        )
+        dialogue_bg = f'{data["narrative"]} You are {play_as}.'
 
         # Perform some sanity checks, if these fail return None
         # ignore data with more than 2 speakers for now
@@ -270,9 +263,7 @@ class SODA(Dataset):
         return len(self.pairs)
 
     def __getitem__(self, index) -> DatasetEntry:
-        # special token added during preprocess
-        dialogue = self.pairs[index]
-        return dialogue
+        return self.pairs[index]
 
 
 class SODADialogue(Dataset):
@@ -301,7 +292,9 @@ class SODADialogue(Dataset):
                 self.pairs.append(question_answer_pairs)
 
         if verbose:
-            print("For SODA dialogue dataset found {} faults within the total {} dialogs".format(faulty, len(self)))
+            print(
+                f"For SODA dialogue dataset found {faulty} faults within the total {len(self)} dialogs"
+            )
 
     def __len__(self):
         return len(self.pairs)
@@ -384,12 +377,7 @@ class TranslatedQA(Dataset):
                             self.pairs.append(("", human, answer))
 
                         # Does this make sense?
-                        prefix += "{}{}{}{}".format(
-                            "Question:",
-                            convo_round["human"],
-                            "Answer:",
-                            convo_round["answer"],
-                        )
+                        prefix += f'Question:{convo_round["human"]}Answer:{convo_round["answer"]}'
 
         self.length = len(self.pairs)
 
@@ -414,8 +402,7 @@ class AlpacaBaseDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index: int) -> DatasetEntry:
-        dialogue = self.data[index]
-        return dialogue
+        return self.data[index]
 
 
 def load_alpaca_dataset(
@@ -440,7 +427,7 @@ def load_alpaca_dataset(
             if (_filter_by_words(input_) is None) or (_filter_by_words(row["output"]) is None):
                 continue
 
-            if set_lang_as_eng is True:
+            if set_lang_as_eng:
                 ds_entry = DatasetEntry(questions=[input_], answers=[row["output"]], lang="en")
             else:
                 ds_entry = DatasetEntry(questions=[input_], answers=[row["output"]])
@@ -493,19 +480,19 @@ class Vicuna(Dataset):
 
             if role != speaker:
                 if role is not None:
-                    if role == "human":
-                        questions.append("\n".join(messages)[:input_max_length])
                     if role == "gpt":
                         answers.append("\n".join(messages)[:input_max_length])
+                    elif role == "human":
+                        questions.append("\n".join(messages)[:input_max_length])
                     messages = []
                 role = speaker
             messages.append(message.strip())
 
         if role is not None and len(messages) > 0:
-            if role == "human":
-                questions.append("\n".join(messages)[:input_max_length])
             if role == "gpt":
                 answers.append("\n".join(messages)[:input_max_length])
+            elif role == "human":
+                questions.append("\n".join(messages)[:input_max_length])
         return questions, answers
 
     def __init__(self, cache_dir: str | Path, mode: str = "sft", input_max_length: int = 2048) -> None:
@@ -529,8 +516,7 @@ class Vicuna(Dataset):
         return len(self.pairs)
 
     def __getitem__(self, index: int) -> DatasetEntry:
-        dialogue = self.pairs[index]
-        return dialogue
+        return self.pairs[index]
 
 
 class DatabricksDolly15k(Dataset):
@@ -542,8 +528,10 @@ class DatabricksDolly15k(Dataset):
             raise NotImplementedError(f"Currently only the modes 'sft' and 'rl' are implemented. Received {mode}.")
         self.mode = mode
         data = load_dataset("OllieStanley/oa_dolly_15k", cache_dir=cache_dir)
-        for line in data["train"]:
-            self.rows.append(self._process_instruction(line, input_max_length))
+        self.rows.extend(
+            self._process_instruction(line, input_max_length)
+            for line in data["train"]
+        )
 
     def _process_instruction(self, row: dict[str, str], input_max_length: int) -> DatasetEntry | None:
         context = re_reference_remove.sub("", row["METADATA"]["CONTEXT"])
@@ -560,8 +548,7 @@ class DatabricksDolly15k(Dataset):
         return len(self.rows)
 
     def __getitem__(self, index: int) -> DatasetEntry:
-        dialogue = self.rows[index]
-        return dialogue
+        return self.rows[index]
 
 
 class AlpacaGpt4(Dataset):
@@ -581,24 +568,19 @@ class AlpacaGpt4(Dataset):
         # And 12 above 1024.
         if len(row["input"]) + len(row["instruction"]) > input_max_length:
             return None
-        # filter all appearing variants of "no input" or empty input or cases where the input is already in the instruction.
-        # In this cases we don't add the input
         if (
-            any([k in row["input"].lower() for k in ["no input", "noinput", "n/a"]])
-            or (not row["input"])
-            or (row["input"].lower() in row["instruction"].lower())
+            any(k in row["input"].lower() for k in ["no input", "noinput", "n/a"])
+            or not row["input"]
+            or row["input"].lower() in row["instruction"].lower()
         ):
             return DatasetEntry(questions=[row["instruction"]], answers=[row["output"]])
-        # Concatenate the instruction and input.
-        else:
-            linking_char = random.choice(LINKING_CHARS)
-            return DatasetEntry(
-                questions=[f"{row['instruction']}{linking_char}{row['input']}"], answers=[row["output"]]
-            )
+        linking_char = random.choice(LINKING_CHARS)
+        return DatasetEntry(
+            questions=[f"{row['instruction']}{linking_char}{row['input']}"], answers=[row["output"]]
+        )
 
     def __len__(self) -> int:
         return len(self.rows)
 
     def __getitem__(self, index: int) -> DatasetEntry:
-        dialogue = self.rows[index]
-        return dialogue
+        return self.rows[index]

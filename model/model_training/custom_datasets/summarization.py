@@ -71,11 +71,7 @@ class SummarizationDataset(Dataset):
         data = self.dataset[idx]
         text, summary = data[self.text_column], data[self.summary_column]
         text, summary = self.preprocess_fn(text, summary)
-        if self.name in SUMMARY_SPECIAL_PROMPT:
-            prompt = random.choice(SUMMARIZATION_SPECIAL_TOKENS["Summary"])
-        else:
-            prompt = random.choice(SUMMARIZATION_SPECIAL_TOKENS["Summary"])
-
+        prompt = random.choice(SUMMARIZATION_SPECIAL_TOKENS["Summary"])
         context = "".join([SUMMARIZATION_SPECIAL_TOKENS["Text"], " ".join(text.split(" ")[: self.max_words]), prompt])
         return (context, summary)
 
@@ -114,7 +110,7 @@ class HFSummaryPairs(Dataset):
         self.posts = []
         self.summary_pairs = []
 
-        major_split = split if "train" == split else "validation"
+        major_split = split if split == "train" else "validation"
         dataset = load_dataset("openai/summarize_from_feedback", "comparisons")[major_split]
         for data in dataset:
             if (
@@ -123,10 +119,10 @@ class HFSummaryPairs(Dataset):
                 and data["extra"]["confidence"] is not None
                 and conf_threshold > data["extra"]["confidence"]
             ):
-                print("skipping {}".format(data["info"]["id"]))
+                print(f'skipping {data["info"]["id"]}')
                 continue
 
-            if split != "train" and split != data["split"]:
+            if split not in ["train", data["split"]]:
                 continue
 
             if "article" in data["info"] and data["info"]["article"] is not None:
@@ -183,7 +179,7 @@ class HFSummary(Dataset):
         # to add additional generated prompt later
         self.index2summary = {}
         self.max_comparison_per_sample = max_comparison_per_sample
-        major_split = split if "train" == split else "validation"
+        major_split = split if split == "train" else "validation"
         dataset = load_dataset("openai/summarize_from_feedback", "comparisons")[major_split]
         for data in dataset:
             if (
@@ -192,10 +188,10 @@ class HFSummary(Dataset):
                 and data["extra"]["confidence"] is not None
                 and conf_threshold > data["extra"]["confidence"]
             ):
-                print("skipping {}".format(data["info"]["id"]))
+                print(f'skipping {data["info"]["id"]}')
                 continue
 
-            if split != "train" and split != data["split"]:
+            if split not in ["train", data["split"]]:
                 continue
 
             if "article" in data["info"] and data["info"]["article"] is not None:
@@ -231,15 +227,12 @@ class HFSummary(Dataset):
             counts[pair[0]] += 1
 
         # Create a list of tuples, where each tuple contains an element and its count
-        elements_counts = [(element, count) for element, count in counts.items()]
+        elements_counts = list(counts.items())
 
         # Sort the list of tuples by count in descending order
         elements_counts.sort(key=lambda x: x[1], reverse=True)
 
-        # Create a list of elements in order of their counts
-        sorted_elements = [element for element, count in elements_counts]
-
-        return sorted_elements
+        return [element for element, count in elements_counts]
 
     def __len__(self) -> int:
         return len(self.index2summary)

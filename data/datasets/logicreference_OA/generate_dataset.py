@@ -50,8 +50,7 @@ def create_string_feature(values):
     # `tf.train.Feature` only takes bytes.
     values = [value.encode("utf-8") for value in values]
 
-    feature = tf.train.Feature(bytes_list=tf.train.BytesList(value=values))
-    return feature
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=values))
 
 
 def generate_t5_split(path, file_name, examples):
@@ -67,10 +66,8 @@ def generate_t5_split(path, file_name, examples):
 def main(_):
     rules.precompute_rules()
 
-    suffix = ""
-    if ANSWER_AT_THE_END:
-        suffix = "_e"
-    folder_iid_name = "logic_inference_iid" + suffix
+    suffix = "_e" if ANSWER_AT_THE_END else ""
+    folder_iid_name = f"logic_inference_iid{suffix}"
 
     # Generate each of the splits:
     print("IID:")

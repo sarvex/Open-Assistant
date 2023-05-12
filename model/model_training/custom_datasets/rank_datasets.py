@@ -27,7 +27,7 @@ class SHPDataset(Dataset):
         dataset_splits = load_dataset("stanfordnlp/SHP", split=split)
 
         answers_by_id = defaultdict(dict)
-        history_by_id = dict()
+        history_by_id = {}
         for split in dataset_splits:
             for row in split:
                 post_id = row["post_id"]
@@ -152,7 +152,7 @@ class AugmentedOA(Dataset):
         super().__init__()
         import json
 
-        assert split in ("train", "val")
+        assert split in {"train", "val"}
 
         pairs = []
         with open(json_filename, "r", encoding="utf-8") as f:
@@ -215,7 +215,7 @@ class AnthropicRLHF(Dataset):
 
     def __init__(self, split: str = "train") -> None:
         super().__init__()
-        assert split in ("train", "test")
+        assert split in {"train", "test"}
         self.split = split
         self.data = []
         dataset = load_dataset("Anthropic/hh-rlhf")[split]

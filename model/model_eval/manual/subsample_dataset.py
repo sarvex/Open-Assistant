@@ -94,8 +94,7 @@ def parse_args():
         help="rng seed",
     )
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

@@ -22,8 +22,7 @@ def build_dataset(data_file: str, include_context: bool = True) -> Dataset:
         for line in Path(data_file).read_text().splitlines()
     ]
 
-    dataset = Dataset.from_list(json_data)
-    return dataset
+    return Dataset.from_list(json_data)
 
 
 def to_oa_format(data: dict, include_context: bool = True) -> dict:

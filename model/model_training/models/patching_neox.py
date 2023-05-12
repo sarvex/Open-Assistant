@@ -15,14 +15,13 @@ def neox_forward_with_flash_attn(
     head_mask=None,
 ):
     # query, key, value: [bs, num_attention_heads, seq_len, attn_head_size]
-    if query.shape == key.shape:
-        flash_attn.train(self.training)
-        out_dtype = value.dtype
-        q, k, v = query.transpose(1, 2), key.transpose(1, 2), value.transpose(1, 2)
-        if attention_mask is not None:
-            attention_mask = attention_mask[:, 0, 0, :]
-        out = compute_flash_attention(flash_attn, q, k, v, attention_mask)
-        out = out.transpose(1, 2).to(out_dtype)
-        return out, None
-    else:
+    if query.shape != key.shape:
         return self.old_forward(query, key, value, attention_mask, head_mask)
+    flash_attn.train(self.training)
+    out_dtype = value.dtype
+    q, k, v = query.transpose(1, 2), key.transpose(1, 2), value.transpose(1, 2)
+    if attention_mask is not None:
+        attention_mask = attention_mask[:, 0, 0, :]
+    out = compute_flash_attention(flash_attn, q, k, v, attention_mask)
+    out = out.transpose(1, 2).to(out_dtype)
+    return out, None

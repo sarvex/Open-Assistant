@@ -92,7 +92,7 @@ def get_one_dataset(
     if mode == "rl":
         assert dataset_name in RL_DATASETS, f"Dataset {dataset_name} not supported for RL"
 
-    if mode == "rm":
+    elif mode == "rm":
         assert dataset_name in RM_DATASETS, f"Dataset {dataset_name} not supported for reward modeling"
 
     data_path = data_path or conf.cache_dir
@@ -121,7 +121,7 @@ def get_one_dataset(
         dataset = DiveMT()
     elif dataset_name == "webgpt":
         dataset = WebGPT(mode=mode)
-    elif dataset_name in ("alpaca", "code_alpaca"):
+    elif dataset_name in {"alpaca", "code_alpaca"}:
         train, eval = load_alpaca_dataset(dataset_name, val_split=val_split, cache_dir=data_path, **kwargs)
     elif dataset_name == "gpt4all":
         dataset = Gpt4All(mode=mode, cache_dir=data_path)
@@ -153,8 +153,8 @@ def get_one_dataset(
     elif dataset_name == "augment_oasst":
         # reward model mode only
         assert mode == "rm"
-        train = AugmentedOA(data_path + "/" + kwargs["input_file_path"], split="train")
-        eval = AugmentedOA(data_path + "/" + kwargs["input_file_path"], split="val")
+        train = AugmentedOA(f"{data_path}/" + kwargs["input_file_path"], split="train")
+        eval = AugmentedOA(f"{data_path}/" + kwargs["input_file_path"], split="val")
     elif dataset_name == "oig_file":
         train, eval = load_oig_file(val_split=val_split, **kwargs)
     elif dataset_name == "anthropic_rlhf":
@@ -173,7 +173,7 @@ def get_one_dataset(
         raise ValueError(f"Unknown dataset {dataset_name}")
 
     # if eval not already defined
-    if not ("eval" in locals() and "train" in locals()):
+    if "eval" not in locals() or "train" not in locals():
         train, eval = train_val_dataset(dataset, val_split=val_split)
 
     if eval and max_val_set and len(eval) > max_val_set:

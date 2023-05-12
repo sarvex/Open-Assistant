@@ -29,8 +29,7 @@ class AggregateResults:
     def scoring(self, prefixes, answer):
         question = self.rank_tokenizer.sep_token.join(prefixes)
         inputs = self.rank_tokenizer(question, answer, return_tensors="pt").to(0)
-        score = self.rank_model(**inputs).logits[0].cpu().detach()
-        return score
+        return self.rank_model(**inputs).logits[0].cpu().detach()
 
     def aggregate(self, jsonl_filenames, dataset, split="val"):
         augmented = {}
@@ -78,12 +77,12 @@ class AggregateResults:
 
 
 def r2_conversation(prefixes, tokenizer, model, top_k=10, temperature=0.7, max_new_tokens=512, model_name=""):
-    text = ""
-    for idx, convo in enumerate(prefixes):
-        if idx % 2 == 0:
-            text += "<|startoftoken|>human\n" + convo + "<|endoftoken|>"
-        else:
-            text += "<|startoftoken|>assistant\n" + convo + "<|endoftoken|>"
+    text = "".join(
+        "<|startoftoken|>human\n" + convo + "<|endoftoken|>"
+        if idx % 2 == 0
+        else "<|startoftoken|>assistant\n" + convo + "<|endoftoken|>"
+        for idx, convo in enumerate(prefixes)
+    )
     input_text = text + "<|startoftoken|>assistant\n"
     inputs = tokenizer(input_text, return_tensors="pt", padding=True).to(0)
 
@@ -114,13 +113,11 @@ def r2_conversation(prefixes, tokenizer, model, top_k=10, temperature=0.7, max_n
 
 
 def r0_conversation(prefixes, tokenizer, model, top_k=10, temperature=0.7, max_new_tokens=512, model_name=""):
-    text = ""
-    for idx, convo in enumerate(prefixes):
-        if idx % 2 == 0:
-            text += "<human>" + convo
-        else:
-            text += "<bot>" + convo + "<|endoftoken|>"
-    input_text = text + "<bot>"
+    text = "".join(
+        f"<human>{convo}" if idx % 2 == 0 else f"<bot>{convo}<|endoftoken|>"
+        for idx, convo in enumerate(prefixes)
+    )
+    input_text = f"{text}<bot>"
     inputs = tokenizer(input_text, return_tensors="pt", padding=True).to(0)
 
     generated_samples = []
@@ -156,12 +153,10 @@ def rallio_conversation(prefixes, tokenizer, model, top_k=2, temperature=0.7, ma
     elif "Kitt" in model_name:
         name = "Kitt"
 
-    text = ""
-    for idx, convo in enumerate(prefixes):
-        if idx % 2 == 0:
-            text += "User: " + convo + "\n"
-        else:
-            text += name + ": " + convo + "\n"
+    text = "".join(
+        f"User: {convo}" + "\n" if idx % 2 == 0 else f"{name}: {convo}" + "\n"
+        for idx, convo in enumerate(prefixes)
+    )
     input_text = text + name + ": "
     inputs = tokenizer(input_text, return_tensors="pt", padding=True).to(0)
 
@@ -208,7 +203,7 @@ def augment_conversation(model_name, dataset, split="train"):
 
     model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir=".cache/").eval().half().cuda()
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    output_file = "{}_2023-03-27-all_{}_{}.jsonl".format(model_name.replace("/", "-"), languages, split)
+    output_file = f'{model_name.replace("/", "-")}_2023-03-27-all_{languages}_{split}.jsonl'
     added = set()
     if os.path.exists(output_file):
         with open(output_file, "r") as f:

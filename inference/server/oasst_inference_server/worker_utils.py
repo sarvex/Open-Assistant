@@ -71,8 +71,7 @@ async def get_worker(
     session: database.AsyncSession = Depends(deps.create_session),
 ) -> models.DbWorker:
     query = sqlmodel.select(models.DbWorker).where(models.DbWorker.id == worker_id)
-    worker = (await session.exec(query)).one()
-    return worker
+    return (await session.exec(query)).one()
 
 
 async def send_worker_request(

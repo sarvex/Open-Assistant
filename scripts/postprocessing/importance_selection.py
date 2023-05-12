@@ -110,10 +110,7 @@ def reweight_features(features, weights, noise_scale=0.0):
     # X = (features - np.mean(features, 0).reshape(1,-1)) / np.std(features, 0).reshape(1,-1)
     noise = np.random.randn(weights.shape[0]) * noise_scale
     weights = weights + noise
-    # normalizer = (X.notna().astype(float) * weights).sum(skipna=True, axis=1)
-    values = features @ weights
-    # values = values / normalizer
-    return values
+    return features @ weights
 
 
 def get_subframe(arr, columns_to_filter):
@@ -133,8 +130,7 @@ def sample_importance_weights(importance_weights, temperature=1.0):
     weights = softmax(
         abs(importance_weights) / temperature,
     )
-    column = np.random.choice(len(importance_weights), p=weights)
-    return column
+    return np.random.choice(len(importance_weights), p=weights)
 
 
 def make_random_testframe(num_rows, num_cols, frac_missing):
@@ -245,14 +241,10 @@ def select_ids(arr, pick_frac, minima=(50, 500), folds=50, to_fit=200, frac=0.6)
         tmp[indices] = 1
         votes.append(tmp)
         # votes.append(indices.tolist())
-    # print(*[f"user_id: {users[idx]} {m}±{s}" for m, s, idx in zip(weights_mean, weights_std, range(len(weights_mean)))], sep="\n")
-    out = []
     votes = np.stack(votes, axis=0)
     print("votespace", votes.shape)
     votes = np.mean(votes, 0)
-    for idx, f in enumerate(votes):
-        if f > frac:
-            out.append((idx, f))
+    out = [(idx, f) for idx, f in enumerate(votes) if f > frac]
     return out
 
 

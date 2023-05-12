@@ -24,8 +24,7 @@ def argument_parsing():
     parser.add_argument("--reduce_frequent_words", type=bool, default=False)
     parser.add_argument("--reduce_outliers_strategy", type=str, default="c-tf-idf")
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def load_topic_model(args):
@@ -33,7 +32,7 @@ def load_topic_model(args):
     ctfidf_model = ClassTfidfTransformer(reduce_frequent_words=False)
     model = SentenceTransformer(MODEL_NAME)
     representation_model = MaximalMarginalRelevance(diversity=args.diversity)
-    topic_model = BERTopic(
+    return BERTopic(
         nr_topics="auto",
         min_topic_size=args.min_topic_size,
         representation_model=representation_model,
@@ -41,7 +40,6 @@ def load_topic_model(args):
         ctfidf_model=ctfidf_model,
         embedding_model=model,
     )
-    return topic_model
 
 
 def fit_topic_model(topic_model, data, embeddings, key="query"):

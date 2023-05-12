@@ -115,7 +115,7 @@ class RMTrainer(Trainer):
             train_sampler = self.sampler
             logging.warning("Custom sampler found!")
 
-        dataloader = DataLoader(
+        return DataLoader(
             train_dataset,
             batch_size=self._train_batch_size,
             sampler=train_sampler,
@@ -125,7 +125,6 @@ class RMTrainer(Trainer):
             pin_memory=self.args.dataloader_pin_memory,
             worker_init_fn=seed_worker,
         )
-        return dataloader
 
 
 def argument_parsing(notebook=False, notebook_args=None):
@@ -151,7 +150,7 @@ def argument_parsing(notebook=False, notebook_args=None):
     for name in args.configs:
         if "," in name:
             for n in name.split(","):
-                conf.update(configs[n])
+                conf |= configs[n]
         else:
             conf.update(configs[name])
 

@@ -77,7 +77,7 @@ if __name__ == "__main__":
     metrics = args.get("metrics").split(",")
     compute_metrics = RewardMetrics(metrics)
     score_dict = defaultdict(float)
-    for i, data in enumerate(dataset):
+    for data in dataset:
         eval_pred = batch_inference(data, model)
         results = compute_metrics(eval_pred)
         for metric in metrics:
@@ -88,8 +88,6 @@ if __name__ == "__main__":
         "model": model_name,
         "dataset": args.get("dataset"),
         "split": splits,
-    }
-    results.update(score_dict)
-
+    } | score_dict
     print("RESULTS", results)
     write_to_json(f"rm-eval-{model_name.split('/')[-1]}-results.json", results)

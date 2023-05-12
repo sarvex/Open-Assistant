@@ -16,13 +16,11 @@ def init_praw_reddit(client_id: str | None = None, client_secret: str | None = N
     CLIENT_SECRET = client_secret if client_secret else os.environ.get("CLIENT_SECRET")
     USER_AGENT = user_agent if user_agent else os.environ.get("USER_AGENT")
 
-    # the client that communicates with reddit.
-    reddit = praw.Reddit(
+    return praw.Reddit(
         client_id=CLIENT_ID,
         client_secret=CLIENT_SECRET,
         user_agent=USER_AGENT,
     )
-    return reddit
 
 
 def scrap_subreddit(subreddit: str, reddit) -> pd.DataFrame | None:

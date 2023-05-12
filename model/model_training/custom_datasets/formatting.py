@@ -18,11 +18,7 @@ QA_SPECIAL_TOKENS = {
 
 
 def format_system_prefix(prefix, eos_token):
-    return "{}{}{}".format(
-        QA_SPECIAL_TOKENS["System"],
-        prefix,
-        eos_token,
-    )
+    return f'{QA_SPECIAL_TOKENS["System"]}{prefix}{eos_token}'
 
 
 class PretrainDatasetEntry(BaseModel):
@@ -59,19 +55,17 @@ class DatasetEntry(BaseModel):
         return round(v, 1)
 
     def system_tag(self, eos_token: str) -> str | None:
-        relevant_system_infos = [
+        if relevant_system_infos := [
             (k, v)
             for k, v in self.__dict__.items()
             if k not in ["questions", "answers"]
             and v is not None
             and str(v).replace("\n", "")
             and random() > SYSTEM_PROPERTY_DROP_PROBA
-        ]
-        if len(relevant_system_infos) > 0:
+        ]:
             shuffle(relevant_system_infos)
             system_tag_key_values = "\n".join([f"{k}: {v}" for k, v in relevant_system_infos])
-            system_tag = f"{QA_SPECIAL_TOKENS['System']}{system_tag_key_values}\n{eos_token}"
-            return system_tag
+            return f"{QA_SPECIAL_TOKENS['System']}{system_tag_key_values}\n{eos_token}"
 
     def _get_formatted_rm(self, eos_token: str, max_replies: int, system_tag: None | str):
         if isinstance(self.answers[0], list):
@@ -106,10 +100,7 @@ class DatasetEntry(BaseModel):
                 eos_token=eos_token, max_replies=kwargs.get("max_replies", 5), system_tag=system_tag
             )
         else:
-            if system_tag is not None:
-                qa_list = [system_tag]
-            else:
-                qa_list = list()
+            qa_list = [system_tag] if system_tag is not None else []
             # check if this is a RM capable dataset (so it has multiple answers to the same question)
             # and if so, extract just the highest scoring answer
             if isinstance(self.answers[0], list):
@@ -150,21 +141,20 @@ def format_pairs(
 ) -> list[str]:
     if isinstance(pairs, DatasetEntry) and mode is not None:
         return pairs.get_formatted(mode=mode, eos_token=eos_token)
-    else:
         # backwards compatibility
-        conversations = [
-            "{}{}{}".format(QA_SPECIAL_TOKENS["Question" if i % 2 == 0 else "Answer"], pairs[i], eos_token)
-            for i in range(len(pairs))
-        ]
-        if add_initial_reply_token:
-            conversations.append(QA_SPECIAL_TOKENS["Answer"])
-        return conversations
+    conversations = [
+        f'{QA_SPECIAL_TOKENS["Question" if i % 2 == 0 else "Answer"]}{pairs[i]}{eos_token}'
+        for i in range(len(pairs))
+    ]
+    if add_initial_reply_token:
+        conversations.append(QA_SPECIAL_TOKENS["Answer"])
+    return conversations
 
 
 def format_rl_text(pairs: list[str]) -> str:
     # convert question answer pairs to only the prefix prompt for RLHF
-    return "{}{}{}".format(QA_SPECIAL_TOKENS["Question"], pairs[0], QA_SPECIAL_TOKENS["Answer"])
+    return f'{QA_SPECIAL_TOKENS["Question"]}{pairs[0]}{QA_SPECIAL_TOKENS["Answer"]}'
 
 
 def format_reply(text: str, eos_token: str) -> str:
-    return "{}{}{}".format(QA_SPECIAL_TOKENS["Answer"], text, eos_token)
+    return f'{QA_SPECIAL_TOKENS["Answer"]}{text}{eos_token}'

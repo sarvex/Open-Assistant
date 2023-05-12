@@ -20,8 +20,7 @@ startup_time: datetime = utcnow()
 
 async def useHFApi(text, url, model_name):
     hugging_face_api: HuggingFaceAPI = HuggingFaceAPI(f"{url}/{model_name}")
-    result = await hugging_face_api.post(text)
-    return result
+    return await hugging_face_api.post(text)
 
 
 @app.task(name="toxicity")

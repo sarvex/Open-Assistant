@@ -106,10 +106,10 @@ def process_context(convo):
         return {"prompt": convo[0]["text"], "history": []}
     last_prompt = convo[-1]
     convo.pop(-1)
-    history_pair = []
-    for idx in range(0, len(convo), 2):
-        history_pair.append((convo[idx]["text"], convo[idx + 1]["text"]))
-
+    history_pair = [
+        (convo[idx]["text"], convo[idx + 1]["text"])
+        for idx in range(0, len(convo), 2)
+    ]
     return {"prompt": last_prompt["text"], "history": history_pair}
 
 
@@ -160,12 +160,12 @@ if __name__ == "__main__":
         with open(rm_jsonl, "r") as f:
             for line in f:
                 data = json.loads(line)
-                key = "{}-{}-{}".format(data["prompt"], data["pos"], "".join(data["neg_replies"]))
+                key = f'{data["prompt"]}-{data["pos"]}-{"".join(data["neg_replies"])}'
                 key_sets.add(key)
 
     new_dataset = []
     for data in RM_dataset:
-        key = "{}-{}-{}".format(data["prompt"], data["pos"], "".join(data["neg_replies"]))
+        key = f'{data["prompt"]}-{data["pos"]}-{"".join(data["neg_replies"])}'
         if key not in key_sets:
             new_dataset.append(data)
 

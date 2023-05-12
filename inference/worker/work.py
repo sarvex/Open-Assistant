@@ -239,8 +239,7 @@ def get_inference_server_stream_events(request: interface.GenerateStreamRequest)
             raise RuntimeError(f"Error from inference server: {event.data}")
         if event.event == "ping":
             continue
-        stream_response = interface.GenerateStreamResponse.parse_raw(event.data)
-        yield stream_response
+        yield interface.GenerateStreamResponse.parse_raw(event.data)
 
 
 def perform_oom_test(tokenizer: transformers.PreTrainedTokenizer):

@@ -7,8 +7,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file_path", type=str, help=".jsonl or jsonl.gz OA export")
     parser.add_argument("--lang", type=str, help="comma separated list of lang-codes")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

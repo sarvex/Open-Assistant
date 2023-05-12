@@ -36,11 +36,7 @@ wanted_cols = [
     "user_statuses_count",
 ]
 
-# Load parqs into list. Using Polars for performance reasons.
-df_list = []
-for p in parq_files:
-    df_list.append(pl.read_parquet(p, columns=wanted_cols))
-
+df_list = [pl.read_parquet(p, columns=wanted_cols) for p in parq_files]
 # Create major dataframe.
 # This can be done incrementally if RAM is constrained by modifying the above code.
 p_df = pl.concat(df_list)
@@ -79,10 +75,7 @@ origin_tweets = p_join.filter((pl.col("in_reply_to_status_id").is_null()) & (pl.
 
 
 def role_decide(user_id, prompt_user):
-    if user_id == prompt_user:
-        return "prompter"
-    else:
-        return "assistant"
+    return "prompter" if user_id == prompt_user else "assistant"
 
 
 class ConversationTreeNode:

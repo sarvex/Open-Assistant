@@ -18,7 +18,7 @@ def load_sampling_data(path):
         raise KeyError("sampling data should contain prompts key")
 
     keys = set(data["prompts"][0].keys())
-    required_keys = set(["prompt", "results"])
+    required_keys = {"prompt", "results"}
     keys = keys.intersection(required_keys)
     if keys != required_keys:
         raise KeyError(f"Missing keys {required_keys - keys} ")

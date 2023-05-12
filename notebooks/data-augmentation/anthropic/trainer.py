@@ -40,7 +40,10 @@ class ProSocialDataset(Dataset):
         prev_context = [f'{self.dataset[i]["context"]}' for i in range(idx_start, idx)]
         rots = self.dataset[idx]["rots"]
         context = (
-            f'{self.dataset[idx]["context"]}' + self.sep_token + "".join(prev_context) + self.sep_token + "".join(rots)
+            f'{self.dataset[idx]["context"]}{self.sep_token}'
+            + "".join(prev_context)
+            + self.sep_token
+            + "".join(rots)
         )
 
         encoding = self.tokenizer(

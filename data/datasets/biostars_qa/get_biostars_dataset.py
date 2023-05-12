@@ -107,8 +107,8 @@ def extract_accepted_data(folder="biostars", merged_json_file=None):
     for input_str in tqdm(answers_df["url"], desc="Find Matched Answers"):
         # extract the question and answer IDs using regular expressions
         match_obj = re.match(r"https://www.biostars.org/p/(\d+)/#(\d+)", input_str)
-        question_id = match_obj.group(1)
-        answer_id = match_obj.group(2)
+        question_id = match_obj[1]
+        answer_id = match_obj[2]
 
         # create a dictionary with the question and answer IDs and add it to the output list
         output_dict = {"question": question_id, "answer": answer_id}
@@ -118,8 +118,6 @@ def extract_accepted_data(folder="biostars", merged_json_file=None):
     matched_qa = []
 
     for match in tqdm(matched_uids, desc="Get Matched Answers"):
-        entry = {}
-
         # match = {'question': '477589', 'answer': '477883'}
 
         entry_obj = questions_df[questions_df["uid"] == int(match["question"])]
@@ -127,12 +125,11 @@ def extract_accepted_data(folder="biostars", merged_json_file=None):
             continue
         entry_dict = entry_obj.iloc[0].to_dict()
 
-        entry["INSTRUCTION"] = entry_dict["content"]
-        entry["SOURCE"] = "biostars"
-        entry[
-            "METADATA"
-        ] = f'{{"uid": {entry_dict["uid"]}, "view_count": {entry_dict["view_count"]}, "vote_count": {entry_dict["vote_count"]}}}'
-
+        entry = {
+            "INSTRUCTION": entry_dict["content"],
+            "SOURCE": "biostars",
+            "METADATA": f'{{"uid": {entry_dict["uid"]}, "view_count": {entry_dict["view_count"]}, "vote_count": {entry_dict["vote_count"]}}}',
+        }
         entry_obj = answers_df[answers_df["uid"] == int(match["answer"])]
         entry_dict = entry_obj.iloc[0].to_dict()
         entry["RESPONSE"] = entry_dict["content"]

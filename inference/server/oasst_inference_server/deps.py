@@ -11,10 +11,12 @@ from oasst_inference_server.user_chat_repository import UserChatRepository
 
 # create async redis client
 def make_redis_client():
-    redis_client = redis.Redis(
-        host=settings.redis_host, port=settings.redis_port, db=settings.redis_db, decode_responses=True
+    return redis.Redis(
+        host=settings.redis_host,
+        port=settings.redis_port,
+        db=settings.redis_db,
+        decode_responses=True,
     )
-    return redis_client
 
 
 redis_client = make_redis_client()
@@ -32,16 +34,14 @@ async def manual_create_session(autoflush=True):
 
 
 async def create_chat_repository(session: AsyncSession = Depends(create_session)) -> ChatRepository:
-    repository = ChatRepository(session=session)
-    return repository
+    return ChatRepository(session=session)
 
 
 async def create_user_chat_repository(
     session: AsyncSession = Depends(create_session),
     user_id: str = Depends(auth.get_current_user_id),
 ) -> UserChatRepository:
-    repository = UserChatRepository(session=session, user_id=user_id)
-    return repository
+    return UserChatRepository(session=session, user_id=user_id)
 
 
 @contextlib.asynccontextmanager

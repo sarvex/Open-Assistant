@@ -129,21 +129,19 @@ def sample(
 def merge_configs(*configs: tuple[Optional[SamplingConfig]]) -> Optional[SamplingConfig]:
     merged: SamplingConfig | None = None
     for c in configs:
-        if not merged:
-            if c:
-                merged = c.copy(deep=True)
-        else:
+        if merged:
             # simple fields
             fields = ["name", "pre_text", "human_name", "bot_name", "add_prefix_tokens"]
             for field_name in fields:
-                v = getattr(c, field_name)
-                if v:
+                if v := getattr(c, field_name):
                     setattr(merged, field_name, v)
             # generate args
             if c.generate_args:
                 for k, v in c.generate_args.items():
                     merged.generate_args[k] = v
 
+        elif c:
+            merged = c.copy(deep=True)
     return merged
 
 
@@ -245,7 +243,7 @@ def main():
     python sampling_report.py --model-name theblackcat102/pythia-3b-deduped-sft --mode v2 --config config/default.json --prompts data/en_100_text.jsonl -n 2 --verbose
     """
 
-    print("Using pytorch version {}".format(torch.__version__))
+    print(f"Using pytorch version {torch.__version__}")
 
     args = parse_args()
     if args.int8 and not torch.cuda.is_available():
@@ -276,7 +274,7 @@ def main():
         model_args["load_in_8bit"] = args.int8
         model_args["device_map"] = "auto"
 
-    if args.model_type.lower() == "causallm" or args.model_type.lower() == "llama":
+    if args.model_type.lower() in ["causallm", "llama"]:
         from transformers import AutoModelForCausalLM
 
         tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=args.auth_token)

@@ -72,7 +72,7 @@ def argument_parsing(notebook=False, notebook_args=None):
         conf["datasets"] = configs[mode.default_config()]["datasets"] + configs[mode.default_config()]["datasets_extra"]
     else:
         # reset datasets, so that we only get the datasets defined in configs and remove the ones in the default
-        datasets_list = list()
+        datasets_list = []
 
         for name in args.datasets:
             # check and process multiple datasets

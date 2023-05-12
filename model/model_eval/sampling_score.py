@@ -17,7 +17,7 @@ def batch_inference(model, dataloader):
 
     scores, sampling = [], []
     device = model.device
-    for i, data in enumerate(dataloader):
+    for data in dataloader:
         sampling.append(data.pop("sampling").cpu().detach().numpy())
         data = {k: v.squeeze().to(device) for k, v in data.items()}
         pred = model(**data).logits[:, 0].cpu().detach().numpy()

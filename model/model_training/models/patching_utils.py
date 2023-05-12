@@ -12,30 +12,29 @@ def compute_flash_attention(flash_attn, q, k, v, attention_mask=None, head_mask=
 
     if attention_mask is None:
         return flash_attn(qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
-    else:
-        # Limitation: non-contiguous attention mask will not be handled correctly
-        # model will be able to pay attention between the first and last non-masked token, i.e. left- and right-side padding is supported.
-        csums = (attention_mask >= 0).cumsum(dim=1)
-        ends = csums.argmax(dim=1) + 1
-        starts = ends - csums.max(dim=1).values
-        seqlens = ends - starts
+    # Limitation: non-contiguous attention mask will not be handled correctly
+    # model will be able to pay attention between the first and last non-masked token, i.e. left- and right-side padding is supported.
+    csums = (attention_mask >= 0).cumsum(dim=1)
+    ends = csums.argmax(dim=1) + 1
+    starts = ends - csums.max(dim=1).values
+    seqlens = ends - starts
 
-        qkv = torch.cat([qkv[i, starts[i] : ends[i]] for i in range(batch_size)], dim=0)
-        zero = torch.zeros_like(seqlens[:1])  # torch.tensor([0]) with correct dtype and device
-        cu_seqlens = torch.cat([zero, seqlens.cumsum(dim=0)], dim=0).to(torch.int32)
-        max_seqlen = seqlens.max().item()
+    qkv = torch.cat([qkv[i, starts[i] : ends[i]] for i in range(batch_size)], dim=0)
+    zero = torch.zeros_like(seqlens[:1])  # torch.tensor([0]) with correct dtype and device
+    cu_seqlens = torch.cat([zero, seqlens.cumsum(dim=0)], dim=0).to(torch.int32)
+    max_seqlen = seqlens.max().item()
 
-        out = flash_attn(qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
-        # out: [num_unmasked_tokens, num_attention_heads, attn_head_size]
+    out = flash_attn(qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
+    # out: [num_unmasked_tokens, num_attention_heads, attn_head_size]
 
-        seqs = [out[start:end] for start, end in zip(cu_seqlens[:-1], cu_seqlens[1:])]
-        # stack and pad sequences together
-        padded_seqs = [
-            F.pad(seqs[i], (0, 0) * (seqs[i].dim() - 1) + (starts[i], max_len - ends[i]), value=0.0)
-            for i in range(batch_size)
-        ]
-        out = torch.stack(padded_seqs)
-        return out
+    seqs = [out[start:end] for start, end in zip(cu_seqlens[:-1], cu_seqlens[1:])]
+    # stack and pad sequences together
+    padded_seqs = [
+        F.pad(seqs[i], (0, 0) * (seqs[i].dim() - 1) + (starts[i], max_len - ends[i]), value=0.0)
+        for i in range(batch_size)
+    ]
+    out = torch.stack(padded_seqs)
+    return out
 
 
 if __name__ == "__main__":

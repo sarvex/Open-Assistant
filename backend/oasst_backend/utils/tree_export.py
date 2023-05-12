@@ -44,9 +44,7 @@ class Anonymizer:
         return self._map[key]
 
     def anonymize(self, collection: str, key: str | None) -> str | None:
-        if key is None:
-            return None
-        return self[f"{collection}:{key}"]
+        return None if key is None else self[f"{collection}:{key}"]
 
 
 def prepare_export_message_node(

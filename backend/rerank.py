@@ -22,18 +22,17 @@ def update_tree_ranking(tm: TreeManager, message_tree_id: UUID) -> int:
     if len(rankings_by_message) == 0:
         logger.warning(f"No ranking results found for message tree {message_tree_id}")
         return 0
-    num_updated = 0
-    for rankings in rankings_by_message.values():
-        if len(rankings) > 0:
-            num_updated += tm.ranked_pairs_update(rankings)
-    return num_updated
+    return sum(
+        tm.ranked_pairs_update(rankings)
+        for rankings in rankings_by_message.values()
+        if len(rankings) > 0
+    )
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Update message ranks with feedback received after tree-completion.")
     parser.add_argument("--commit", action="store_true", default=False, help="Dry run with rollback if not specified")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

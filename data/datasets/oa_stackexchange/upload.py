@@ -15,7 +15,7 @@ def upload_hf():
     parquet_file = PARQUET_FILE
     dataset = load_dataset("parquet", data_files=parquet_file, name="oa-stackexchange")
     dataset.push_to_hub(HF_DATASET, max_shard_size="500MB")
-    print("Uploaded to Hugging Face: " + HF_DATASET)
+    print(f"Uploaded to Hugging Face: {HF_DATASET}")
 
 
 if __name__ == "__main__":

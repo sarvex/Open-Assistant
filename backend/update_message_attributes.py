@@ -18,10 +18,7 @@ def get_messageids_without_toxicity():
         result = session.execute(
             text(sql),
         ).all()
-        message_ids = []
-        for row in result:
-            message_id = row[0]
-            message_ids.append(message_id)
+        message_ids = [row[0] for row in result]
     return message_ids
 
 
@@ -36,10 +33,7 @@ def get_messageids_without_embedding():
         result = session.execute(
             text(sql),
         ).all()
-        message_ids = []
-        for row in result:
-            message_id = row[0]
-            message_ids.append(message_id)
+        message_ids = [row[0] for row in result]
     return message_ids
 
 

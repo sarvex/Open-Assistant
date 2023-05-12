@@ -33,9 +33,7 @@ async def list_chats(
         return base64.b64encode(chat.id.encode()).decode()
 
     def decode_cursor(cursor: str | None):
-        if cursor is None:
-            return None
-        return base64.b64decode(cursor.encode()).decode()
+        return None if cursor is None else base64.b64decode(cursor.encode()).decode()
 
     chats = await ucr.get_chats(
         include_hidden=include_hidden, limit=limit + 1, after=decode_cursor(after), before=decode_cursor(before)
