@@ -7,7 +7,7 @@ fastapi==0.88.0
 fastapi-limiter==0.1.5
 fastapi-utils==0.2.1
 loguru==0.6.0
-numpy>=1.23.2
+numpy==1.25.2
 prometheus-fastapi-instrumentator==5.9.1
 psycopg2-binary==2.9.5
 pydantic==1.10.7
@@ -19,6 +19,6 @@ requests==2.31.0
 scipy==1.10.0
 SQLAlchemy==1.4.41
 sqlmodel==0.0.8
-tqdm>=4.64.1
+tqdm==4.66.1
 uuid7==0.1.0
 uvicorn==0.20.0
